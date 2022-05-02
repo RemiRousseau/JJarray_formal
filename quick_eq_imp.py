@@ -175,14 +175,15 @@ def initialize_file_cable_capa_z_eq():
 
 
 ##To adapt to new convention !!!!
-def cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g, messages):
+def cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, cj, lj, cg, messages):
+    l_j0, c_j0 = sp.symbols("L_j0 C_j0",real = True)
     if N_jct == 2:
         if loss:
-            Y_s = 1/r + var*c_j + 1/(l_j*var)
+            Y_s = 1/r + var*cj + 1/(lj*var)
         else:
-            Y_s = var*c_j + 1/(l_j*var)
-        Y_p = var*c_g
-        return [2*(Y_p+Y_s)]
+            Y_s = var*cj + 1/(lj*var)
+        Y_p = var*cg
+        return [2*(Y_p+Y_s).subs({lj:l_j0/2,cj:c_j0*2})]
     
     path = "data/cable_capa_z_eq_data/"
     Y_s_0, Y_p_0 = sp.symbols("Y_s_0 Y_p_0")
@@ -257,11 +258,11 @@ def cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_
     file_y_eq.close()
     
     if loss:
-        Y_s_val = 1/r + var*c_j + 1/(l_j*var)
+        Y_s_val = 1/r + var*cj + 1/(lj*var)
     else:
-        Y_s_val = var*c_j + 1/(l_j*var)
+        Y_s_val = var*cj + 1/(lj*var)
     
-    Y_p_val = var*c_g
+    Y_p_val = var*cg
     
     if messages :
         print("Replacing with element's values..")
@@ -270,5 +271,5 @@ def cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_
         iterable = res
     final = []
     for i,el in enumerate(iterable) :
-        final.append(sp.factor((el.subs({Y_s_0:Y_s_val,Y_p_0:Y_p_val})).subs({l_j : l_j_0/(i+2)})))
+        final.append(sp.factor((el.subs({Y_s_0:Y_s_val,Y_p_0:Y_p_val})).subs({lj : l_j0/(i+2), cj : c_j0*(i+2)})))
     return final
