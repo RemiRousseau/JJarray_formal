@@ -6,9 +6,10 @@ Created on Thu Apr 28 09:43:18 2022
 """
 
 import sympy as sp
+from numpy import pi
 from tqdm import tqdm 
 
-def equivalent_impedance (N_jct, mass_capa = True, all_eqs = True, fourier = True,loss = False, impedance = True, l_j_0 = 15, nu_0 = 15, c_g = 10**-2,r = 10**9,messages = True):
+def equivalent_impedance (N_jct, mass_capa = True, all_eqs = True, fourier = True,loss = False, impedance = True,messages = True):
     """Computes the equivalent impedance or admitance of an array of Josephson's junctions.
     N_jct : Number of junctions
     mass_capa : Supra islands connected to the mass or to the input/outputs
@@ -28,31 +29,35 @@ def equivalent_impedance (N_jct, mass_capa = True, all_eqs = True, fourier = Tru
     else:
         s = sp.symbols("s",real = True)
         var = s
-    
-    if all_eqs :
-        l_j = sp.symbols("L_J")
-    else:
-        l_j = l_j_0/N_jct
-    
-    c_j = 1/(l_j*nu_0**2)
+        
+    lj,cj,cg,r = sp.symbols("L_j C_j C_g R", real = True)
     
     if N_jct<0:
         print("Error : The number of junction should be an int superior or equal to 1")
         return []
     elif N_jct == 1:
         if loss :
-            Z_s = 1/(1/r + var*c_j + 1/(l_j*var))
+            Z_s = 1/(1/r + var*cj + 1/(lj*var))
         else :
-            Z_s = 1/(var*c_j + 1/(l_j*var))
+            Z_s = 1/(var*cj + 1/(lj*var))
         if impedance :
-            return [Z_s]
+            return [sp.factor(Z_s)]
         else: 
-            return [1/Z_s]
+            return [sp.factor(1/Z_s)]
+    
+    l_j0, c_j0 = sp.symbols("L_j0 C_j0",real = True)
+    dico_params = {l_j0:1,c_j0:1,cg:1}
+    if loss :
+        dico_params[r]=1
+    if fourier:
+        var_f = w
+    else:
+        var_f = s
     
     if mass_capa:
-        return mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g, messages)
+        return mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, cj, lj, cg, messages)
     else:
-        return cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g, messages)
+        return cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, cj, lj, cg, messages)
 
 def initialize_file_mass_capa_z_eq():
     path = "data/mass_capa_z_eq_data/"
@@ -61,18 +66,20 @@ def initialize_file_mass_capa_z_eq():
     for name,line in zip(files_names,lines):
         file = open(path+name+".txt","w")
         file.write(line)
-        file.close()
-
-def clean_up_mass_capa_z_eq():
-    path = "data/mass_capa_z_eq_data/"
-    files_names = ["D","Z_eq","Z_p","Z_s_d","Z_s_g"]
-    for name in files_names:
-        file = open(path+name+".txt","r")
-        print(f"{name} : {str(len(file.readlines()))}\n")
-        file.close()
-        
+        file.close()        
     
-def mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g, messages):
+def mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, cj, lj, cg, messages):
+    l_j0, c_j0 = sp.symbols("L_j0 C_j0",real = True)
+    if N_jct == 2:
+        if loss :
+            Z_s = 1/(1/r + var*cj + 1/(lj*var))
+        else :
+            Z_s = 1/(var*cj + 1/(lj*var))
+        if impedance :
+            return [sp.factor(2*Z_s.subs({lj:l_j0/2,cj:c_j0*2}))]
+        else:
+            return [sp.factor(1/(2*Z_s).subs({lj:l_j0/2,cj:c_j0*2}))]
+    
     path = "data/mass_capa_z_eq_data/"
     Z_s_0, Z_p_0 = sp.symbols("Z_s_0 Z_p_0")
     
@@ -142,10 +149,10 @@ def mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g
     file_z_eq.close()
     
     if loss :
-        Z_s_val = 1/(1/r + var*c_j + 1/(l_j*var))
+        Z_s_val = 1/(1/r + var*cj + 1/(lj*var))
     else :
-        Z_s_val = 1/(var*c_j + 1/(l_j*var))
-    Z_p_val = 1/(var*c_g)
+        Z_s_val = 1/(var*cj + 1/(lj*var))
+    Z_p_val = 1/(var*cg)
     
     if messages :
         print("Replacing with element's values..")
@@ -154,7 +161,7 @@ def mass_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g
         iterable = res
     final = []
     for i,el in enumerate(iterable) :
-        final.append(sp.factor((el.subs({Z_s_0:Z_s_val,Z_p_0:Z_p_val})).subs({l_j : l_j_0/(i+3)})))
+        final.append(sp.factor((el.subs({Z_s_0:Z_s_val,Z_p_0:Z_p_val})).subs({lj : l_j0/(i+3), cj : c_j0*(i+3)})))
     return final
 
 def initialize_file_cable_capa_z_eq():
@@ -166,15 +173,17 @@ def initialize_file_cable_capa_z_eq():
         file.write(line)
         file.close()
 
-def clean_up_cable_capa_z_eq():
-    path = "data/cable_capa_z_eq_data/"
-    files_names = ["D","Y_eq","Y_p","Y_s","Y_t"]
-    for name in files_names:
-        file = open(path+name+".txt","r")
-        print(f"{name} : {str(len(file.readlines()))}\n")
-        file.close()
 
+##To adapt to new convention !!!!
 def cable_capa_z_eq(N_jct, var, all_eqs, loss, impedance, r, c_j, l_j, l_j_0, c_g, messages):
+    if N_jct == 2:
+        if loss:
+            Y_s = 1/r + var*c_j + 1/(l_j*var)
+        else:
+            Y_s = var*c_j + 1/(l_j*var)
+        Y_p = var*c_g
+        return [2*(Y_p+Y_s)]
+    
     path = "data/cable_capa_z_eq_data/"
     Y_s_0, Y_p_0 = sp.symbols("Y_s_0 Y_p_0")
     
