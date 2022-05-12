@@ -43,10 +43,6 @@ class Array:
         if self._rjs == 0 and self._rjp == np.inf and self._rg == np.inf:
             self._rk, self._kappa, self._q0, self._rk_res, self._kappa_res, self._q_res = [], [], [], [], [], []
         else:
-            # self._rk = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2)) for m, w0
-            #             in zip(self._mods, self._modes_0)]
-            # self._kappa = [1 / (rk * ck) for rk, ck in zip(self._rk, self._ck)]
-            # self._q0 = [wk / ka for wk, ka in zip(self._modes_0, self._kappa)]
             self._q0 = self.compute_q(self._modes_0)
             self._q_res = []
 
@@ -70,15 +66,6 @@ class Array:
         return [(m / self._lj + wk ** 2 * (self._cg / 2 + self._cj * m)) / (2 * wk * (
                 1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * wk ** 2))) for m, wk in
                 zip(self._mods, freqs)]
-
-#Cannot work as the frequency for the computation of the loss is lost when calculating the adapted frequency of the
-#resonator -> keep same method
-    def get_q_other_method(self):
-        rkl0 = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2)) for m, w0 in zip(self._mods, self._modes_0)]
-        q0 = [_wk * _rk * _ck for _wk, _rk, _ck in zip(self._modes_0, rkl0, self._ck)]
-        rklcorr = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2)) for m, w0 in zip(self._mods, self._modes_res)]
-        q_res = [_wk * _rk * _ck for _wk, _rk, _ck in zip(self._modes_res, rklcorr, self._ck)]
-        return q0,q_res
 
     def resonator_correction(self, ct=None, n_corr=None):
         if n_corr is None:
@@ -129,10 +116,6 @@ class Array:
             self._modes_res.append(even)
         if n_corr % 2 == 1:
             self._modes_res.append(odd_modes[-1])
-        # self._rk_res = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2))
-        #                 for m, w0 in zip(self._mods, self._modes_res)]
-        # self._kappa_res = [1 / (rk * ck) for rk, ck in zip(self._rk_res, self._ck)]
-        # self._q_res = [w_r / ka for w_r, ka in zip(self._modes_res, self._kappa_res)]
         self._q_res = self.compute_q(self._modes_res)
 
     def isolated_resonance(self):
