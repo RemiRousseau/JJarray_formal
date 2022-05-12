@@ -126,3 +126,5 @@ class Array:
             return self._n_mode
         else:
             return _overlap.index(False)
+
+
