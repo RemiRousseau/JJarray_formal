@@ -71,6 +71,15 @@ class Array:
                 1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * wk ** 2))) for m, wk in
                 zip(self._mods, freqs)]
 
+#Cannot work as the frequency for the computation of the loss is lost when calculating the adapted frequency of the
+#resonator -> keep same method
+    def get_q_other_method(self):
+        rkl0 = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2)) for m, w0 in zip(self._mods, self._modes_0)]
+        q0 = [_wk * _rk * _ck for _wk, _rk, _ck in zip(self._modes_0, rkl0, self._ck)]
+        rklcorr = [1 / (1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * w0 ** 2)) for m, w0 in zip(self._mods, self._modes_res)]
+        q_res = [_wk * _rk * _ck for _wk, _rk, _ck in zip(self._modes_res, rklcorr, self._ck)]
+        return q0,q_res
+
     def resonator_correction(self, ct=None, n_corr=None):
         if n_corr is None:
             n_corr = self._n_mode
