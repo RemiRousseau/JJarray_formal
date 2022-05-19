@@ -35,16 +35,17 @@ class Array:
         self._mods = [1 - np.cos(np.pi * k / n_jct) for k in range(1, self._n_mode + 1)]
         self._ck = [self._cg / 2 + self._cj * m for m in self._mods]
         self._lk = [self._lj / m for m in self._mods]
+        self._rk = []
         self._modes_0 = [1 / np.sqrt(lk * c) for lk, c in zip(self._lk, self._ck)]
-        self._zk = [np.sqrt(lk / c) / 2 for lk, c in zip(self._lk, self._ck)]
+        self._zk = [np.sqrt(lk / ck) / 2 for lk, ck in zip(self._lk, self._ck)]
 
         self._modes_res = []
 
         if self._rjs == 0 and self._rjp == np.inf and self._rg == np.inf:
-            self._rk, self._kappa, self._q0, self._rk_res, self._kappa_res, self._q_res = [], [], [], [], [], []
+            self._q0 = []
         else:
             self._q0 = self.compute_q(self._modes_0)
-            self._q_res = []
+        self._q_res = []
 
     def get_bare_modes(self, frequency=True):
         if frequency:
@@ -62,6 +63,11 @@ class Array:
     def get_resonator_q(self):
         return self._q_res
 
+    def get_bare_modes_rlc(self):
+        self._rk = [1/2/self._rg + m*(1/self._rjp + self._cj**2*self._rjs*wk**2)
+                    for m, wk in zip(self._mods, self._modes_0)]
+        return self._rk, self._lk, self._ck
+
     def compute_q(self, freqs):
         return [(m / self._lj + wk ** 2 * (self._cg / 2 + self._cj * m)) / (2 * wk * (
                 1 / (2 * self._rg) + m * (1 / self._rjp + self._cj ** 2 * self._rjs * wk ** 2))) for m, wk in
@@ -72,9 +78,9 @@ class Array:
             n_corr = self._n_mode
         if ct is not None:
             self._ct = ct
-        self.compute_resonator_correction(n_corr)
+        self._compute_resonator_correction(n_corr)
 
-    def compute_resonator_correction(self, n_corr):
+    def _compute_resonator_correction(self, n_corr):
         # Even mode computation
         func = lambda wkc, _k, _wk0, _zk: np.tan(wkc * _k * np.pi / _wk0 / 2) + wkc * self._ct * _zk
         func_p = lambda wkc, _k, _wk0, _zk: _k * np.pi / _wk0 / 2 * (
@@ -117,6 +123,7 @@ class Array:
         if n_corr % 2 == 1:
             self._modes_res.append(odd_modes[-1])
         self._q_res = self.compute_q(self._modes_res)
+        print("Resonators Q are under evaluated, calculation to modify")
 
     def isolated_resonance(self):
         """Test if modes are separated enough to be distinguishable."""
