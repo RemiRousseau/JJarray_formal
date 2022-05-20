@@ -45,7 +45,7 @@ axlj = plt.axes([0.25, 0.25, 0.65, 0.03])
 lj_slider = Slider(
     ax=axlj,
     label='Junction inductance [nH]',
-    valmin=1.8,
+    valmin=1.2,
     valmax=2,
     valinit=init_lj,
 )
