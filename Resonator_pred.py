@@ -5,8 +5,15 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-article_data = np.load("Article_experimental_data.npy")
-n_jct = 80
+n_plot = 1
+
+n_jct = 9
+L_j_0 = 3.5
+fp = 15
+f_lumped = 8
+
+[init_lj_tot, init_cj, init_cg, init_ct] = [L_j_0, 1/(L_j_0/n_jct*(fp*2*np.pi)**2),
+                                            1.093e-7, 2/(L_j_0*(f_lumped*2*np.pi)**2)]
 
 zs = lambda w, lj, cj: 1j*lj*w/(1-lj*cj*w**2)
 yg = lambda w, cg: 1j*cg*w
@@ -24,49 +31,37 @@ def z_in(w, _n_jct, lj, cj, cg, ct):
 
 def eigen_resonator(x, _n_jct):
     [lj, cj, cg, ct] = list(np.abs(x))
-    #cj, cg, ct = abs(cj), abs(cg), abs(ct)
     ws = (np.linspace(0, 1/np.sqrt(lj*cj)/2/np.pi, 100000, dtype=complex)*2*np.pi)[1:]
     z_in_im_vals = np.imag(z_in(ws, _n_jct, lj, cj, cg, ct))
     sgn = np.sign(z_in_im_vals)
     f_roots = [ws[ind]/2/np.pi for ind, test in enumerate(sgn[:-1] * sgn[1:] == -1) if test]
-    return f_roots[:9]
+    return f_roots[:n_plot]
 
 fig, ax = plt.subplots(figsize = (12,8))
-[init_lj, init_cj, init_cg, init_ct] = [1.9, 4.06e-5, 1.093e-7, 1.445e-5]
-line, = plt.plot(eigen_resonator([init_lj, init_cj, init_cg, init_ct], 80), "+--", label="Fit")
-line_article, = plt.plot(article_data, "+--", label="Data")
-line_pred, = plt.plot([-0.1, 0.1], [1/np.sqrt(init_lj*n_jct*init_ct)/2/np.pi,
-                                    1/np.sqrt(init_lj*n_jct*init_ct)/2/np.pi], label="Perfect prediction")
+line, = plt.plot(eigen_resonator([init_lj_tot/n_jct, init_cj, init_cg, init_ct], n_jct), "+--", label="Fit")
+line_lumped, = plt.plot([-0.1, 0.1],[f_lumped,f_lumped], label="Ideal expectation")
 
 ax.set_xlabel('Mode number')
 ax.set_ylabel('Frequency [GHz]')
 ax.legend()
-plt.subplots_adjust(bottom=0.35)
+plt.grid()
+plt.subplots_adjust(bottom=0.3)
 
-axlj = plt.axes([0.25, 0.25, 0.65, 0.03])
+axlj = plt.axes([0.25, 0.2, 0.65, 0.03])
 lj_slider = Slider(
     ax=axlj,
     label='Junction inductance [nH]',
-    valmin=1.2,
-    valmax=2,
-    valinit=init_lj,
-)
-
-axcj = plt.axes([0.25, 0.2, 0.65, 0.03])
-cj_slider = Slider(
-    ax=axcj,
-    label='Junction capacity [nF]',
-    valmin=1e-5,
-    valmax=8e-5,
-    valinit=init_cj,
+    valmin=1,
+    valmax=5,
+    valinit=init_lj_tot,
 )
 
 axcg = plt.axes([0.25, 0.15, 0.65, 0.03])
 cg_slider = Slider(
     ax=axcg,
     label='Capacity ground [nF]',
-    valmin=1e-8,
-    valmax=3e-7,
+    valmin=1e-15,
+    valmax=1e-6,
     valinit=init_cg,
 )
 
@@ -74,20 +69,28 @@ axct = plt.axes([0.25, 0.1, 0.65, 0.03])
 ct_slider = Slider(
     ax=axct,
     label='Resonator capacity [nF]',
-    valmin=1e-6,
-    valmax=5e-5,
+    valmin=1e-15,
+    valmax=1e-3,
     valinit=init_ct,
 )
 
 
 def update(val):
-    line.set_ydata(eigen_resonator([lj_slider.val, cj_slider.val, cg_slider.val, ct_slider.val], n_jct))
-    line_pred.set_ydata(1/np.sqrt(lj_slider.val*n_jct*ct_slider.val)/2/np.pi)
+    _lj_tot, _cg, _ct = lj_slider.val, cg_slider.val, ct_slider.val
+    _cj = 1/(_lj_tot/n_jct*(fp*2*np.pi)**2)
+    f_exp = 1/np.sqrt(_lj_tot*_ct/2)/2/np.pi
+    eig = eigen_resonator([_lj_tot/n_jct, _cj, _cg, _ct], n_jct)
+
+    min_y = min(eig + [f_exp])
+    max_y = max(eig + [f_exp])
+
+    ax.set_ylim([min_y-0.1, max_y+0.1])
+    line_lumped.set_ydata([f_exp, f_exp])
+    line.set_ydata(eig)
     fig.canvas.draw_idle()
 
 
 lj_slider.on_changed(update)
-cj_slider.on_changed(update)
 cg_slider.on_changed(update)
 ct_slider.on_changed(update)
 
@@ -96,7 +99,6 @@ button = Button(resetax, 'Reset', hovercolor='0.975')
 
 def reset(event):
     lj_slider.reset()
-    cj_slider.reset()
     cg_slider.reset()
     ct_slider.reset()
 
