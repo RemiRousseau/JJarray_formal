@@ -75,7 +75,7 @@ omegas = np.linspace(0 * 2 * np.pi, 10 * 2 * np.pi, 2001)
 #                 [-8*ECb*ELb*ELa/Esum, 8*ECb*ELb*(ELa+EL)/Esum]])
 # e, v = eig(mat)
 
-guesses = [0.09 * 2 * np.pi, 2.6 * 2 * np.pi]
+guesses = [4 * 2 * np.pi, 7 * 2 * np.pi]
 eig_omegas, eig_phizpfs = c.rep_AC.display_eom(ax_eom, omegas, guesses=guesses,
                                                log_kappa=True)  # , kappas=kappas, guesses=guesses)#kappas=kappas
 
