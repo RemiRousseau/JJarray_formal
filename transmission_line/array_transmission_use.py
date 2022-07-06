@@ -234,7 +234,7 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # cg = 5e-7
 # ct = 2 / (lj * n_jct * (5 * 2 * np.pi) ** 2)
 # ground_deltas_1m_80 = [1.01393e-5, 7.26137e-5, 1.12665e-6]
-# cable_deltas_1m_80 = [1.19447e-5, 6.139e-6, 1.32734e-6]
+# cable_deltas_1m_80 = [2.81973e-5, 1.62286e-5, 1.10757e-6]
 # labels_sweep = [r"$\tan \delta_J$", r"$\tan \delta_g$", r"$\tan \delta_t$"]
 # signs_sweep = ["--^", "--o", "--v"]
 #
@@ -242,37 +242,39 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # model_type = "c"
 #
 # if model_base == "cable":
-#     cg*=2
+#     cg*=0.5
 # delta_1m = ground_deltas_1m_80 if model_base == "ground" else cable_deltas_1m_80
 # print_model = "Ground" if model_base == "ground" else "Cable"
 # model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_type,
 #                                                       show_progression=True, show_fit_window=False)
 # model.init_params(n_jct, lj, cj, cg, ct)
-#model.plot_Q_mode(0, np.logspace(-7, -4, 10), 2, resistor_losses=False)
-
+# #model.plot_Q_mode(0, np.logspace(-7, -4, 10), 2, resistor_losses=False)
+#
 # tandj_l = [[delta_1m[0]], [0], [0]]
 # tandg_l = [[0], [delta_1m[1]], [0]]
 # tandt_l = [[0], [0], [delta_1m[2]]]
+#
+# results_qs = []
+# results_kappas = []
+# results_fs = []
 # for tandj, tandg, tandt in zip(tandj_l, tandg_l, tandt_l):
 #     model.sweep_losses_tand(tandj, tandg, tandt)
 #     f_res, q_res, param_res = model.get_variation()
 #     results_qs.append(q_res[0])
 #     results_fs.append([w / 2 / np.pi for w in f_res[0]])
+#     results_kappas.append([f/q/2/np.pi*1e6 for f, q in zip(f_res[0], q_res[0])])
 #
 # fig, axs = plt.subplots()
-# q_tot = [1 / sum([1 / results_qs[i][m] for i in range(3)]) for m in range(len(results_qs[0]))]
-# axs.plot(q_tot, "+--", label="Total")
-# for i, r in enumerate([results_qs]):
-#     for ind in range(len(r)):
-#         axs.plot(r[ind], signs_sweep[ind], label=labels_sweep[ind])
+# for i, r in enumerate(results_kappas):
+#     axs.plot(r, signs_sweep[i], label=labels_sweep[i])
 #     axs.grid()
 #     axs.legend()
 #     axs.set_yscale('log')
-# axs.set_ylabel("Q")
+# axs.set_ylabel(r"$\kappa$ (kHz)")
 # axs.set_xlabel("Mode number")
 # plt.show()
-
-
+#
+#
 # sweep_vals = [[0, 0, 0] for _ in range(3)]
 # for i in range(3):
 #     sweep_vals[i][i] = delta_1m[i]
@@ -285,20 +287,20 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 #     model.init_params(n_jct, lj, cj, cg, ct)
 #     for i, rs in enumerate(sweep_vals):
 #         model.init_losses_tand(*rs)
-#         model.compute_model(lst_to_fit=[0])
-#         results[i].append(model.get_qs()[0])
+#         model.compute_model_modes(lst_to_fit=[0])
+#         results[i].append(model.get_pulsations()[0]/model.get_qs()[0]/2/np.pi*1e6)
 # fig, ax = plt.subplots()
 # for i in range(len(results)):
 #     ax.plot(n_jct_sweep, results[i], signs_sweep[i], label=labels_sweep[i])
 # ax.grid()
 # ax.set_xlabel("$N_{jct}$")
-# ax.set_ylabel("Q")
-# ax.set_title("Variation of the quality factor with respect to the the number of junctions.\n("+print_model+" model)")
+# ax.set_ylabel(r"$\kappa$ (kHz)")
+# ax.set_title(r"Variation of $\kappa$ with respect to the the number of junctions."+"\n("+print_model+" model)")
 # ax.set_xscale("log")
 # ax.set_yscale("log")
 # ax.legend()
 # plt.show()
-
+#
 # sweep_vals = [[0, 0, 0] for _ in range(3)]
 # for i in range(3):
 #     sweep_vals[i][i] = delta_1m[i]
@@ -312,9 +314,10 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 #     model.init_params(n_jct, lj, cj, cg, ct)
 #     for i, rs in enumerate(sweep_vals):
 #         model.init_losses_tand(*rs)
-#         model.compute_model(lst_to_fit=[0])
-#         results_q[i].append(model.get_qs()[0])
-#         results_w[i].append(model.get_pulsations()[0])
+#         model.compute_model_modes(lst_to_fit=[0])
+#         w, q = model.get_pulsations()[0], model.get_qs()[0]
+#         results_q[i].append(w/q/2/np.pi*1e6)
+#         results_w[i].append(w)
 # fig, ax = plt.subplots(2, 1)
 # for i in range(len(results_q)):
 #     ax[0].plot(lj_sweep*n_jct, results_q[i], signs_sweep[i], label=labels_sweep[i])
@@ -322,10 +325,10 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # ax[0].grid()
 # ax[1].grid()
 # ax[1].set_xlabel("$L_{array}$")
-# ax[0].set_ylabel("Q")
+# ax[0].set_ylabel(r"$\kappa$ (kHz)")
 # ax[1].set_ylabel("f (GHz)")
 # fig.suptitle(print_model+" model")
-# ax[0].set_title("Variation of the fundamental quality factor with respect to the array inductance.")
+# ax[0].set_title(r"Variation of the fundamental mode's $\kappa$ with respect to the array inductance.")
 # ax[1].set_title("Variation of the fundamental frequency with respect to the array inductance.")
 # ax[1].set_xscale("log")
 # ax[0].set_xscale("log")
@@ -333,21 +336,22 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # ax[0].legend()
 # ax[1].legend()
 # plt.show()
-
+#
 # sweep_vals = [[0, 0, 0] for _ in range(3)]
 # for i in range(3):
 #     sweep_vals[i][i] = delta_1m[i]
 # results_q = [[], [], []]
 # results_w = [[], [], []]
-# f_sweep = np.linspace(1,8 , 20)
+# f_sweep = np.linspace(1,8, 20)
 # for f_res in tqdm(f_sweep):
 #     ct = 2 / (lj * n_jct * (f_res * 2 * np.pi) ** 2)
 #     model.init_params(n_jct, lj, cj, cg, ct)
 #     for i, rs in enumerate(sweep_vals):
 #         model.init_losses_tand(*rs)
 #         model.compute_model(lst_to_fit=[0])
-#         results_q[i].append(model.get_qs()[0])
-#         results_w[i].append(model.get_pulsations()[0])
+#         w, q = model.get_pulsations()[0], model.get_qs()[0]
+#         results_q[i].append(w / q / 2 / np.pi*1e6)
+#         results_w[i].append(w)
 # fig, ax = plt.subplots(2, 1)
 # for i in range(len(results_q)):
 #     ax[0].plot(f_sweep, results_q[i], signs_sweep[i], label=labels_sweep[i])
@@ -355,31 +359,32 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # ax[0].grid()
 # ax[1].grid()
 # ax[1].set_xlabel("$f (GHz)$")
-# ax[0].set_ylabel("Q")
+# ax[0].set_ylabel(r"$\kappa$ (kHz)")
 # ax[1].set_ylabel("f (GHz)")
 # fig.suptitle(print_model+" model")
-# ax[0].set_title("Variation of the fundamental quality factor with respect to the targeted frequency.")
+# ax[0].set_title(r"Variation of the fundamental mode's $\kappa$ with respect to the targeted frequency.")
 # ax[1].set_title("Variation of the fundamental frequency with respect to the targeted frequency.")
 # ax[0].set_yscale("log")
 # ax[0].legend()
 # ax[1].legend()
 # plt.show()
-
+#
 # sweep_vals = [[0, 0, 0] for _ in range(3)]
 # for i in range(3):
 #     sweep_vals[i][i] = delta_1m[i]
 # results_q = [[], [], []]
 # results_w = [[], [], []]
-# cg_sweep = np.logspace(-8, -2, 20)
+# cg_sweep = np.logspace(-8, -2, 20)[:-3]
 # if model_base == "cable":
-#     cg_sweep*=2
+#     cg_sweep*=0.5
 # for cg in tqdm(cg_sweep):
 #     model.init_params(n_jct, lj, cj, cg, ct)
 #     for i, rs in enumerate(sweep_vals):
 #         model.init_losses_tand(*rs)
 #         model.compute_model(lst_to_fit=[0])
-#         results_q[i].append(model.get_qs()[0])
-#         results_w[i].append(model.get_pulsations()[0])
+#         w, q = model.get_pulsations()[0], model.get_qs()[0]
+#         results_q[i].append(w / q / 2 / np.pi*1e6)
+#         results_w[i].append(w)
 # fig, ax = plt.subplots(2, 1)
 # for i in range(len(results_q)):
 #     ax[0].plot(cg_sweep, results_q[i], signs_sweep[i], label=labels_sweep[i])
@@ -387,10 +392,10 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # ax[0].grid()
 # ax[1].grid()
 # ax[1].set_xlabel("$C_g$")
-# ax[0].set_ylabel("Q")
+# ax[0].set_ylabel(r"$\kappa$ (kHz)")
 # ax[1].set_ylabel("$f (GHz)$")
 # fig.suptitle(print_model+" model")
-# ax[0].set_title("Variation of the fundamental quality factor with respect to the "+model_base+" capacity.")
+# ax[0].set_title(r"Variation of the fundamental mode's $\kappa$ with respect to the "+model_base+" capacity.")
 # ax[1].set_title("Variation of the fundamental frequency with respect to the "+model_base+" capacity.")
 # ax[0].set_yscale("log")
 # ax[0].set_xscale("log")
@@ -400,22 +405,11 @@ model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_t
 # plt.show()
 
 
-n_jct = 26
+n_jct = 25
 lj = 15/ n_jct
 cj = 1 / lj / (15 * 2 * np.pi) ** 2
 cg = 1e-6
 ct = 2 / (lj * n_jct * (5 * 2 * np.pi) ** 2)
-
-for model_base, factor in zip(["ground", "cable"], [1, 2]):
-    model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_c",
-                                                          show_progression=True, show_fit_window=False)
-    model.init_params(n_jct, lj, cj, cg*factor, ct)
-    model.compute_model()
-    plt.plot(model._ws_init/2/np.pi, model._log_sqr_abs, label=model_base)
-plt.plot([5, 5], [-10, 10], "r+--", label="perfect")
-plt.grid()
-plt.legend()
-plt.show()
 
 model_base = "cable"
 model_type = "c"
@@ -428,7 +422,7 @@ phi_zpf = model.get_phi_zpf()
 perfect_phi_zpf = model.get_perfect_grd_phi_zpf()
 fig, ax = plt.subplots(figsize=(12, 8))
 ax.plot([1, n_jct], [perfect_phi_zpf]*2, label="Perfect")
-for i, m in enumerate(phi_zpf[:4]):
+for i, m in enumerate(phi_zpf[:3]):
     ax.plot(list(range(1, n_jct+1)), m, "+--", label=f"Mode {i}")
 ax.grid()
 ax.legend()
@@ -437,15 +431,61 @@ ax.set_ylabel(r"$\varphi_{ZPF}$")
 ax.set_title(r"$\varphi_{ZPF}$ per junction for the first 4 modes.")
 plt.show()
 
-model.compute_kerr()
-kerr = model.get_kerr()
+kerr = model.get_kerr()/2/np.pi*1e3
 n_mode = len(kerr)
-plt.plot([kerr[i, i]*1e3 for i in range(kerr.shape[0])], "+--", label="self-kerr")
+plt.plot([kerr[i, i] for i in range(kerr.shape[0])], "+--", label="self-kerr")
 for i in range(n_mode-1):
-    plt.plot(range(i+1, n_mode), [v*1e3 for v in kerr[i][i+1:]], "+--", label=f"cross-kerr with mode {i}")
+    plt.plot(range(i+1, n_mode), [v for v in kerr[i][i+1:]], "+--", label=f"cross-kerr with mode {i}")
 plt.grid()
 plt.legend()
 plt.xlabel("Mode number")
 plt.ylabel("Kerr (MHz)")
 plt.title("Kerr")
 plt.show()
+
+
+# n_jct = 25
+# lj = 15/ n_jct
+# cj = 1 / lj / (15 * 2 * np.pi) ** 2
+# cg = 1e-6
+# ct = 2 / (lj * n_jct * (5 * 2 * np.pi) ** 2)
+# phi_zpfs, perf_phi_zpfs, kers = [], [], []
+# for model_base, factor in zip(["ground", "cable"], [1, 0.5]):
+#     model_type = "c"
+#     model = array_transmission_lorentzian.ArrayLorentzian(model_base + "_" + model_type,
+#                                                           show_progression=True, show_fit_window=False)
+#     model.init_params(n_jct, lj, cj, cg*factor, ct)
+#     model.compute_model()
+#     print(model._wps[0]/2/np.pi)
+#     phi_zpf = model.get_phi_zpf()
+#     perfect_phi_zpf = model.get_perfect_grd_phi_zpf()
+#     kerr = model.get_kerr()
+#     phi_zpfs.append(phi_zpf)
+#     perf_phi_zpfs.append(perfect_phi_zpf)
+#     kers.append(kerr)
+#
+# fig, ax = plt.subplots(figsize=(12, 8))
+# for phi_zpf, perfect_phi_zpf, kerr, name in zip(phi_zpfs, perf_phi_zpfs, kers, ["Ground", "Cable"]):
+#     ax.plot([1, n_jct], [perfect_phi_zpf]*2, label=name+" perfect")
+#     for i, m in enumerate(phi_zpf[:3]):
+#         ax.plot(list(range(1, n_jct+1)), m, "+--", label=name+f" Mode {i}")
+# ax.grid()
+# ax.legend()
+# ax.set_ylabel("Junction number")
+# ax.set_ylabel(r"$\varphi_{ZPF}$")
+# ax.set_title(r"$\varphi_{ZPF}$ per junction for the first 4 modes.")
+# plt.show()
+#
+#
+# fig, ax = plt.subplots(figsize=(12, 8))
+# for phi_zpf, perfect_phi_zpf, kerr, name in zip(phi_zpfs, perf_phi_zpfs, kers, ["Ground", "Cable"]):
+#     n_mode = len(kerr)
+#     plt.plot([kerr[i, i]*1e3 for i in range(kerr.shape[0])], "+--", label=name + " self-kerr")
+#     for i in range(n_mode-1):
+#         plt.plot(range(i+1, n_mode), [v*1e3 for v in kerr[i][i+1:]], "+--", label=name + f" cross-kerr with mode {i}")
+# plt.grid()
+# plt.legend()
+# plt.xlabel("Mode number")
+# plt.ylabel("Kerr (MHz)")
+# plt.title("Kerr")
+# plt.show()

@@ -115,7 +115,7 @@ class ArrayLorentzian:
         elif model_lst[0] == "cable":
             if model_lst[1] == "c":
                 self._z_in_f = self._z_in_cable
-                self._gamma = self._gamma_c
+                self._gamma = lambda _ws: self._gamma_c(_ws)*np.sqrt(2)
             else:
                 raise NameError("In model variable, 'cable' should be followed by 'c'.")
         elif model_lst[0] == "perfect":
@@ -249,7 +249,8 @@ class ArrayLorentzian:
         gam = self._gamma(_ws)
         y0 = np.sqrt(yg_v / zs_v)
         a = 1
-        b = 1 / (nj * yg_v / 2 + 1j * y0 / 2 / np.tan(gam * nj / 2))
+        # b = 1/(-1j*y0/2*(1 + np.cos(gam*nj))/np.sin(gam*nj) + yg_v*nj/2)
+        b = 1 / (nj * yg_v / 2 + 1j * y0 / 2 / np.tan(gam * nj))
         c = 0
         d = 1
 
@@ -312,6 +313,7 @@ class ArrayLorentzian:
                     n_tighter += 1
                     new_peak, new_properties = find_peaks(tight_abs_z_in, height=0, width=1)
                     if len(new_peak) != 1:
+                        print(len(new_peak))
                         raise ValueError
                     p = tight_ws[new_peak[0]]
                     hw_guess = new_properties["right_ips"][0] - new_properties["left_ips"][0]
@@ -396,7 +398,7 @@ class ArrayLorentzian:
         return self._perfect_ground_state_phi_zpf
 
     def compute_kerr(self):
-        self._kerr = np.ones((self._n_mode, self._n_mode))
+        self._kerr = np.zeros((self._n_mode, self._n_mode))
         for i in range(self._n_mode):
             for j in range(i, self._n_mode):
                 kerr = 0
@@ -416,8 +418,8 @@ class ArrayLorentzian:
         self.compute_perfect_ground_state_phi_zpf()
         self.compute_kerr()
 
-    def compute_model(self):
-        self.compute_model_modes()
+    def compute_model(self, lst_to_fit=None):
+        self.compute_model_modes(lst_to_fit)
         self.compute_model_quantum()
 
     def print_mode_info(self):
@@ -686,7 +688,7 @@ class ArrayLorentzian:
                 self.init_losses_resistor(*losses)
             else:
                 self.init_losses_tand(*losses)
-            self.compute_model([mode])
+            self.compute_model_modes([mode])
             qs_plt.append(self._qs[mode])
         fig, ax = plt.subplots()
         ax.plot(losses_variation, qs_plt)
